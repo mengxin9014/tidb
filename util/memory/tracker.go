@@ -416,6 +416,25 @@ func (t *Tracker) SearchTrackerWithoutLock(label int) *Tracker {
 	return nil
 }
 
+// SearchTrackerConsumedMoreThanNBytes searches the specific tracker that consumes more than NBytes.
+func (t *Tracker) SearchTrackerConsumedMoreThanNBytes(limit int64) (res map[int]int64) {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	tMap := make(map[int]int64, 1024)
+	for _, sli := range t.mu.children {
+		for _, tracker := range sli {
+			if tracker.BytesConsumed() > limit {
+				if _, ok := tMap[tracker.Label()]; !ok {
+					tMap[tracker.Label()] = tracker.BytesConsumed()
+				} else {
+					tMap[tracker.Label()] += tracker.BytesConsumed()
+				}
+			}
+		}
+	}
+	return tMap
+}
+
 // String returns the string representation of this Tracker tree.
 func (t *Tracker) String() string {
 	buffer := bytes.NewBufferString("\n")

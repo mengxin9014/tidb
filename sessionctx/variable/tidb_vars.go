@@ -677,7 +677,10 @@ const (
 
 	// TiDBSimplifiedMetrics controls whether to unregister some unused metrics.
 	TiDBSimplifiedMetrics = "tidb_simplified_metrics"
-)
+
+	// TiDBMemoryDebugMode is used to set tidb memory debug mode.
+	TiDBMemoryDebugMode = "tidb_memory_debug_mode"
+	)
 
 // TiDB vars that have only global scope
 

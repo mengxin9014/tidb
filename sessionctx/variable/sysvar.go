@@ -1641,6 +1641,10 @@ var defaultSysVars = []*SysVar{
 			metrics.ToggleSimplifiedMode(TiDBOptOn(s))
 			return nil
 		}},
+	{Scope: ScopeSession, Name: TiDBMemoryDebugMode, Value: strconv.Itoa(0), Type: TypeInt, MinValue: 0, MaxValue: 2, SetSession: func(s *SessionVars, val string) error {
+		s.MemoryDebugMode = TidbOptInt64(val, 0)
+		return nil
+	}},
 }
 
 // FeedbackProbability points to the FeedbackProbability in statistics package.

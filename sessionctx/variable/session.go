@@ -1155,6 +1155,9 @@ type SessionVars struct {
 
 	// MaxAllowedPacket indicates the maximum size of a packet for the MySQL protocol.
 	MaxAllowedPacket uint64
+
+	// MemoryDebugMode indicated the memory debug mode.
+	MemoryDebugMode int64
 }
 
 // InitStatementContext initializes a StatementContext, the object is reused to reduce allocation.

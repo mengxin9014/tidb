@@ -16,11 +16,22 @@ package executor
 
 import (
 	"context"
+	"go.uber.org/zap"
+	"os"
+	"path/filepath"
+	"runtime"
+	rpprof "runtime/pprof"
+	"sort"
+	"strconv"
+	"time"
 
+	"github.com/cznic/mathutil"
 	"github.com/pingcap/errors"
+	"github.com/pingcap/tidb/config"
 	"github.com/pingcap/tidb/planner/core"
 	"github.com/pingcap/tidb/util/chunk"
-	"github.com/pingcap/tidb/util/mathutil"
+	"github.com/pingcap/tidb/util/logutil"
+	"github.com/pingcap/tidb/util/memory"
 )
 
 // ExplainExec represents an explain executor.
@@ -89,6 +100,16 @@ func (e *ExplainExec) executeAnalyzeExec(ctx context.Context) (err error) {
 				}
 			}
 		}()
+		if e.ctx.GetSessionVars().MemoryDebugMode > 0 {
+			exit := make(chan bool)
+			e.runMemoryDebugGoroutine(exit)
+			defer func() {
+				select {
+				case <-exit:
+				}
+			}()
+			defer func() { exit <- false }()
+		}
 		e.executed = true
 		chk := newFirstChunk(e.analyzeExec)
 		for {
@@ -122,4 +143,98 @@ func (e *ExplainExec) getAnalyzeExecToExecutedNoDelay() Executor {
 		return e.analyzeExec
 	}
 	return nil
+}
+
+func (e *ExplainExec) runMemoryDebugGoroutine(exit chan bool) {
+	debugMode := e.ctx.GetSessionVars().MemoryDebugMode
+	ticker := time.NewTicker(5 * time.Second)
+	tracker := e.ctx.GetSessionVars().StmtCtx.MemTracker
+	instanceStats := &runtime.MemStats{}
+	var heapInUse, trackedMem uint64
+	const GB = 1024 * 1024 * 1024
+	go func() {
+		defer func() {
+			runtime.GC()
+			runtime.StopTheWorld("readMem")
+			runtime.ReadMemStatWithoutSTW(instanceStats)
+			heapInUse = instanceStats.HeapInuse
+			tMap := tracker.SearchTrackerConsumedMoreThanNBytes(0)
+			trackedMem = uint64(tracker.BytesConsumed())
+			profile := *rpprof.Lookup("heap")
+			runtime.StartTheWorld()
+
+			logutil.BgLogger().Warn("Memory Debug Mode",
+				zap.String("sql", "finished"),
+				zap.String("heap in use", memory.FormatBytes(int64(heapInUse))),
+				zap.String("tracked memory", memory.FormatBytes(int64(trackedMem))),
+				zap.String("heap profile", e.getHeapProfile(false, profile)))
+			logs := make([]zap.Field, 0, len(tMap))
+			var keys []int
+			for k, _ := range tMap {
+				keys = append(keys, k)
+			}
+			sort.Ints(keys)
+			for _, k := range keys {
+				logs = append(logs, zap.String("Executor_"+strconv.Itoa(k), memory.FormatBytes(tMap[k])))
+			}
+			logutil.BgLogger().Warn("Memory Debug Mode, Log all trackers that consumes", logs...)
+			close(exit)
+		}()
+		times := 0
+		for {
+			select {
+			case <-exit:
+				return
+			case <-ticker.C:
+
+				times++
+				if times%6 == 0 {
+					if debugMode == 2 {
+						runtime.GC()
+					}
+					runtime.StopTheWorld("readMem")
+					runtime.ReadMemStatWithoutSTW(instanceStats)
+					heapInUse = instanceStats.HeapInuse
+					tMap := tracker.SearchTrackerConsumedMoreThanNBytes(0)
+					trackedMem = uint64(tracker.BytesConsumed())
+					profile := *rpprof.Lookup("heap")
+					runtime.StartTheWorld()
+
+					logutil.BgLogger().Warn("Memory Debug Mode",
+						zap.String("sql", "running"),
+						zap.String("heap in use", memory.FormatBytes(int64(heapInUse))),
+						zap.String("tracked memory", memory.FormatBytes(int64(trackedMem))),
+						zap.String("heap profile", e.getHeapProfile(false, profile)))
+
+					logs := make([]zap.Field, 0, len(tMap))
+					var keys []int
+					for k, _ := range tMap {
+						keys = append(keys, k)
+					}
+					sort.Ints(keys)
+					for _, k := range keys {
+						logs = append(logs, zap.String("Executor_"+strconv.Itoa(k), memory.FormatBytes(tMap[k])))
+					}
+					logutil.BgLogger().Warn("Memory Debug Mode, Log all trackers that consumes", logs...)
+					if heapInUse > uint64(e.ctx.GetSessionVars().TiFlashMaxThreads)*GB && trackedMem/10*11 < heapInUse {
+						logutil.BgLogger().Warn("Memory Debug Mode",
+							zap.String("Memory Debug Mode", "exceed limit, heapInUse - heapTracked = "+memory.FormatBytes(int64(heapInUse-trackedMem))))
+					}
+				}
+			}
+		}
+	}()
+}
+
+func (e *ExplainExec) getHeapProfile(gc bool, p rpprof.Profile) (fileName string) {
+	tempDir := filepath.Join(config.GetGlobalConfig().TempStoragePath, "record")
+	timeString := time.Now().Format(time.RFC3339)
+	if gc {
+		runtime.GC()
+	}
+	fileName = filepath.Join(tempDir, "heapGC"+timeString)
+	f, _ := os.Create(fileName)
+	_ = p.WriteTo(f, 0)
+	_ = f.Close()
+	return fileName
 }
