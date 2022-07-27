@@ -687,6 +687,7 @@ func (e *HashJoinExec) Next(ctx context.Context, req *chunk.Chunk) (err error) {
 			keyColIdx: buildKeyColIdx,
 		}
 		e.rowContainer = newHashRowContainer(e.ctx, int(e.buildSideEstCount), hCtx, retTypes(e.buildSideExec))
+		e.rowContainer.memTracker.AttachTo(e.memTracker)
 		// we shallow copies rowContainer for each probe worker to avoid lock contention
 		e.rowContainerForProbe = make([]*hashRowContainer, e.concurrency)
 		for i := uint(0); i < e.concurrency; i++ {
