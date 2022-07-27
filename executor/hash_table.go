@@ -258,7 +258,8 @@ type entryStore struct {
 
 func newEntryStore() *entryStore {
 	es := new(entryStore)
-	es.slices = [][]entry{make([]entry, initialEntrySliceLen)}
+	es.slices = make([][]entry, 0, 1024)
+	es.slices = append(es.slices, make([]entry, initialEntrySliceLen))
 	es.cursor = 0
 	return es
 }
