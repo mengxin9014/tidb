@@ -435,7 +435,8 @@ func (t *Tracker) SearchTrackerConsumedMoreThanNBytes(limit int64) (res map[int]
 	return tMap
 }
 
-func (t *Tracker) CountAllChildrenMemUse() (tMap map[int]int64) {
+func (t *Tracker) CountAllChildrenMemUse() map[int]int64 {
+	tMap := make(map[int]int64, 1024)
 	countChildMem(t, tMap)
 	return tMap
 }
@@ -449,6 +450,8 @@ func countChildMem(t *Tracker, tMap map[int]int64) {
 	if len(t.mu.children) == 0 {
 		return
 	}
+	t.mu.Lock()
+	defer t.mu.Unlock()
 	for _, sli := range t.mu.children {
 		for _, tracker := range sli {
 			countChildMem(tracker, tMap)
