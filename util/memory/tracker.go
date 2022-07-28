@@ -441,8 +441,6 @@ func (t *Tracker) CountAllChildrenMemUse() (tMap map[int]int64) {
 }
 
 func countChildMem(t *Tracker, tMap map[int]int64) {
-	t.mu.Lock()
-	defer t.mu.Unlock()
 	if _, ok := tMap[t.Label()]; !ok {
 		tMap[t.Label()] = t.BytesConsumed()
 	} else {
