@@ -15,10 +15,8 @@
 package executor
 
 import (
-	"sync"
-	"unsafe"
-
 	"github.com/pingcap/tidb/util/hack"
+	"sync"
 )
 
 // ShardCount controls the shard maps within the concurrent map
@@ -56,9 +54,8 @@ func (m concurrentMap) Insert(key uint64, value *entry) (memDelta int64) {
 	oldValue := shard.items[key]
 	value.next = oldValue
 	shard.items[key] = value
-	memDelta += int64(unsafe.Sizeof(value))
 	if len(shard.items) > (1<<shard.bInMap)*hack.LoadFactorNum/hack.LoadFactorDen {
-		memDelta += hack.DefBucketMemoryUsageForMapIntToPtr * (1 << shard.bInMap)
+		memDelta = hack.DefBucketMemoryUsageForMapIntToPtr * (1 << shard.bInMap)
 		shard.bInMap++
 	}
 	shard.Unlock()

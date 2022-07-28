@@ -192,12 +192,16 @@ func (e *ExplainExec) runMemoryDebugGoroutine(exit chan bool) {
 					if debugMode == 2 {
 						runtime.GC()
 					}
+
 					runtime.StopTheWorld("readMem")
+
 					runtime.ReadMemStatWithoutSTW(instanceStats)
 					heapInUse = instanceStats.HeapInuse
 					tMap := tracker.SearchTrackerConsumedMoreThanNBytes(0)
+					tChildrenMap := tracker.CountAllChildrenMemUse()
 					trackedMem = uint64(tracker.BytesConsumed())
 					profile := *rpprof.Lookup("heap")
+
 					runtime.StartTheWorld()
 
 					logutil.BgLogger().Warn("Memory Debug Mode",
@@ -206,16 +210,8 @@ func (e *ExplainExec) runMemoryDebugGoroutine(exit chan bool) {
 						zap.String("tracked memory", memory.FormatBytes(int64(trackedMem))),
 						zap.String("heap profile", e.getHeapProfile(false, profile)))
 
-					logs := make([]zap.Field, 0, len(tMap))
-					var keys []int
-					for k, _ := range tMap {
-						keys = append(keys, k)
-					}
-					sort.Ints(keys)
-					for _, k := range keys {
-						logs = append(logs, zap.String("Executor_"+strconv.Itoa(k), memory.FormatBytes(tMap[k])))
-					}
-					logutil.BgLogger().Warn("Memory Debug Mode, Log all trackers that consumes", logs...)
+					logutil.BgLogger().Warn("Memory Debug Mode, Log all trackers that consumes", getSortedTrackerMapLog(tMap)...)
+					logutil.BgLogger().Warn("Memory Debug Mode, Log all children trackers that consumes", getSortedTrackerMapLog(tChildrenMap)...)
 					if heapInUse > uint64(e.ctx.GetSessionVars().TiFlashMaxThreads)*GB && trackedMem/10*11 < heapInUse {
 						logutil.BgLogger().Warn("Memory Debug Mode",
 							zap.String("Memory Debug Mode", "exceed limit, heapInUse - heapTracked = "+memory.FormatBytes(int64(heapInUse-trackedMem))))
@@ -224,6 +220,19 @@ func (e *ExplainExec) runMemoryDebugGoroutine(exit chan bool) {
 			}
 		}
 	}()
+}
+
+func getSortedTrackerMapLog(tMap map[int]int64) []zap.Field {
+	logs := make([]zap.Field, 0, len(tMap))
+	var keys []int
+	for k, _ := range tMap {
+		keys = append(keys, k)
+	}
+	sort.Ints(keys)
+	for _, k := range keys {
+		logs = append(logs, zap.String("Executor_"+strconv.Itoa(k), memory.FormatBytes(tMap[k])))
+	}
+	return logs
 }
 
 func (e *ExplainExec) getHeapProfile(gc bool, p rpprof.Profile) (fileName string) {
