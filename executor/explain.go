@@ -22,7 +22,6 @@ import (
 	"runtime"
 	rpprof "runtime/pprof"
 	"sort"
-	"strconv"
 	"time"
 
 	"github.com/cznic/mathutil"
@@ -159,6 +158,7 @@ func (e *ExplainExec) runMemoryDebugGoroutine(exit chan bool) {
 			runtime.ReadMemStatWithoutSTW(instanceStats)
 			heapInUse = instanceStats.HeapInuse
 			tMap := tracker.SearchTrackerConsumedMoreThanNBytes(0)
+			tChildrenMap := tracker.CountAllChildrenMemUse()
 			trackedMem = uint64(tracker.BytesConsumed())
 			profile := *rpprof.Lookup("heap")
 			runtime.StartTheWorld()
@@ -168,16 +168,13 @@ func (e *ExplainExec) runMemoryDebugGoroutine(exit chan bool) {
 				zap.String("heap in use", memory.FormatBytes(int64(heapInUse))),
 				zap.String("tracked memory", memory.FormatBytes(int64(trackedMem))),
 				zap.String("heap profile", e.getHeapProfile(false, profile)))
-			logs := make([]zap.Field, 0, len(tMap))
-			var keys []int
-			for k, _ := range tMap {
-				keys = append(keys, k)
+
+			logutil.BgLogger().Warn("Memory Debug Mode, Log all trackers that consumes", getSortedTrackerMapLog(tMap)...)
+			logutil.BgLogger().Warn("Memory Debug Mode, Log all children trackers that consumes", getSortedTrackerMapLog(tChildrenMap)...)
+			if heapInUse > uint64(e.ctx.GetSessionVars().TiFlashMaxThreads)*GB && trackedMem/10*11 < heapInUse {
+				logutil.BgLogger().Warn("Memory Debug Mode",
+					zap.String("Memory Debug Mode", "exceed limit, heapInUse - heapTracked = "+memory.FormatBytes(int64(heapInUse-trackedMem))))
 			}
-			sort.Ints(keys)
-			for _, k := range keys {
-				logs = append(logs, zap.String("Executor_"+strconv.Itoa(k), memory.FormatBytes(tMap[k])))
-			}
-			logutil.BgLogger().Warn("Memory Debug Mode, Log all trackers that consumes", logs...)
 			close(exit)
 		}()
 		times := 0
@@ -222,15 +219,15 @@ func (e *ExplainExec) runMemoryDebugGoroutine(exit chan bool) {
 	}()
 }
 
-func getSortedTrackerMapLog(tMap map[int]int64) []zap.Field {
+func getSortedTrackerMapLog(tMap map[string]int64) []zap.Field {
 	logs := make([]zap.Field, 0, len(tMap))
-	var keys []int
+	var keys []string
 	for k, _ := range tMap {
 		keys = append(keys, k)
 	}
-	sort.Ints(keys)
+	sort.Strings(keys)
 	for _, k := range keys {
-		logs = append(logs, zap.String("Executor_"+strconv.Itoa(k), memory.FormatBytes(tMap[k])))
+		logs = append(logs, zap.String("FamilyTree_"+k, memory.FormatBytes(tMap[k])))
 	}
 	return logs
 }
