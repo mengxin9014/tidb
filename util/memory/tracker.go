@@ -423,7 +423,7 @@ func (t *Tracker) CountAllChildrenMemUse() map[string]int64 {
 }
 
 func countChildMem(t *Tracker, familyTree string, tMap map[string]int64) {
-	familyTree += string(rune(t.label)) + "->"
+	familyTree += strconv.Itoa(t.Label()) + "->"
 	if _, ok := tMap[familyTree]; !ok {
 		tMap[familyTree] = t.BytesConsumed()
 	} else {
