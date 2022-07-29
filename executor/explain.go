@@ -157,7 +157,6 @@ func (e *ExplainExec) runMemoryDebugGoroutine(exit chan bool) {
 			runtime.StopTheWorld("readMem")
 			runtime.ReadMemStatWithoutSTW(instanceStats)
 			heapInUse = instanceStats.HeapInuse
-			tMap := tracker.SearchTrackerConsumedMoreThanNBytes(0)
 			tChildrenMap := tracker.CountAllChildrenMemUse()
 			trackedMem = uint64(tracker.BytesConsumed())
 			profile := *rpprof.Lookup("heap")
@@ -169,7 +168,6 @@ func (e *ExplainExec) runMemoryDebugGoroutine(exit chan bool) {
 				zap.String("tracked memory", memory.FormatBytes(int64(trackedMem))),
 				zap.String("heap profile", e.getHeapProfile(false, profile)))
 
-			logutil.BgLogger().Warn("Memory Debug Mode, Log all trackers that consumes", getSortedTrackerMapLog(tMap)...)
 			logutil.BgLogger().Warn("Memory Debug Mode, Log all children trackers that consumes", getSortedTrackerMapLog(tChildrenMap)...)
 			if heapInUse > uint64(e.ctx.GetSessionVars().TiFlashMaxThreads)*GB && trackedMem/10*11 < heapInUse {
 				logutil.BgLogger().Warn("Memory Debug Mode",
@@ -194,7 +192,6 @@ func (e *ExplainExec) runMemoryDebugGoroutine(exit chan bool) {
 
 					runtime.ReadMemStatWithoutSTW(instanceStats)
 					heapInUse = instanceStats.HeapInuse
-					tMap := tracker.SearchTrackerConsumedMoreThanNBytes(0)
 					tChildrenMap := tracker.CountAllChildrenMemUse()
 					trackedMem = uint64(tracker.BytesConsumed())
 					profile := *rpprof.Lookup("heap")
@@ -207,7 +204,6 @@ func (e *ExplainExec) runMemoryDebugGoroutine(exit chan bool) {
 						zap.String("tracked memory", memory.FormatBytes(int64(trackedMem))),
 						zap.String("heap profile", e.getHeapProfile(false, profile)))
 
-					logutil.BgLogger().Warn("Memory Debug Mode, Log all trackers that consumes", getSortedTrackerMapLog(tMap)...)
 					logutil.BgLogger().Warn("Memory Debug Mode, Log all children trackers that consumes", getSortedTrackerMapLog(tChildrenMap)...)
 					if heapInUse > uint64(e.ctx.GetSessionVars().TiFlashMaxThreads)*GB && trackedMem/10*11 < heapInUse {
 						logutil.BgLogger().Warn("Memory Debug Mode",

@@ -89,18 +89,6 @@ type bytesLimits struct {
 	bytesSoftLimit int64 // bytesSoftLimit <= 0 means no limit, used for actionMuForSoftLimit.
 }
 
-func (t *Tracker) GetFamilyTree() string {
-	var familyTreeStr string
-	for {
-		familyTreeStr += string(rune(t.label))
-		if t.getParent() == nil {
-			break
-		}
-		familyTreeStr += "->"
-	}
-	return familyTreeStr
-}
-
 // InitTracker initializes a memory tracker.
 //	1. "label" is the label used in the usage string.
 //	2. "bytesLimit <= 0" means no limit.
@@ -428,34 +416,14 @@ func (t *Tracker) SearchTrackerWithoutLock(label int) *Tracker {
 	return nil
 }
 
-// SearchTrackerConsumedMoreThanNBytes searches the specific tracker that consumes more than NBytes.
-func (t *Tracker) SearchTrackerConsumedMoreThanNBytes(limit int64) (res map[string]int64) {
-	t.mu.Lock()
-	defer t.mu.Unlock()
-	tMap := make(map[string]int64, 1024)
-	for _, sli := range t.mu.children {
-		for _, tracker := range sli {
-			if tracker.BytesConsumed() > limit {
-				familyTree := tracker.GetFamilyTree()
-				if _, ok := tMap[familyTree]; !ok {
-					tMap[familyTree] = tracker.BytesConsumed()
-				} else {
-					tMap[familyTree] += tracker.BytesConsumed()
-				}
-			}
-		}
-	}
-	return tMap
-}
-
 func (t *Tracker) CountAllChildrenMemUse() map[string]int64 {
 	tMap := make(map[string]int64, 1024)
-	countChildMem(t, tMap)
+	countChildMem(t, "", tMap)
 	return tMap
 }
 
-func countChildMem(t *Tracker, tMap map[string]int64) {
-	familyTree := t.GetFamilyTree()
+func countChildMem(t *Tracker, familyTree string, tMap map[string]int64) {
+	familyTree += string(rune(t.label)) + "->"
 	if _, ok := tMap[familyTree]; !ok {
 		tMap[familyTree] = t.BytesConsumed()
 	} else {
@@ -468,7 +436,7 @@ func countChildMem(t *Tracker, tMap map[string]int64) {
 	defer t.mu.Unlock()
 	for _, sli := range t.mu.children {
 		for _, tracker := range sli {
-			countChildMem(tracker, tMap)
+			countChildMem(tracker, familyTree, tMap)
 		}
 	}
 	return
