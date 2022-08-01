@@ -640,6 +640,8 @@ const (
 	LabelForAnalyzeMemory int = -24
 	// LabelForGlobalAnalyzeMemory represents the label of the global memory of all analyze jobs
 	LabelForGlobalAnalyzeMemory int = -25
+
+	LabelForProbeSideResult int = -26
 )
 
 // MetricsTypes is used to get label for metrics

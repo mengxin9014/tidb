@@ -16,6 +16,8 @@ package executor
 
 import (
 	"fmt"
+	"github.com/pingcap/tidb/util/logutil"
+	"go.uber.org/zap"
 	"hash"
 	"hash/fnv"
 	"sync/atomic"
@@ -113,11 +115,11 @@ func (c *hashRowContainer) ShallowCopy() *hashRowContainer {
 }
 
 func getRowsMemUse(rows []chunk.Row) int64 {
-	return int64(len(rows) * (8 + 4))
+	return int64(cap(rows) * (8 + 4))
 }
 
 func getRowPtrsMemUse(rowPtrs []chunk.RowPtr) int64 {
-	return int64(len(rowPtrs) * (4 + 4))
+	return int64(cap(rowPtrs) * (4 + 4))
 }
 
 // GetMatchedRowsAndPtrs get matched rows and Ptrs from probeRow. It can be called
@@ -128,6 +130,8 @@ func (c *hashRowContainer) GetMatchedRowsAndPtrs(probeKey uint64, probeRow chunk
 	memSizeMatched := getRowsMemUse(matched)
 	memSizeMatchedPtrs := getRowPtrsMemUse(matchedPtrs)
 	innerPtrs := c.hashTable.Get(probeKey)
+	mem := c.hashTable.GetAndCleanMemoryDelta()
+	c.memTracker.Consume(mem)
 	if len(innerPtrs) == 0 {
 		return nil, nil, err
 	}
@@ -153,6 +157,10 @@ func (c *hashRowContainer) GetMatchedRowsAndPtrs(probeKey uint64, probeRow chunk
 	}
 	c.memTracker.Consume(getRowsMemUse(matched) - memSizeMatched)
 	c.memTracker.Consume(getRowPtrsMemUse(matchedPtrs) - memSizeMatchedPtrs)
+	logutil.BgLogger().Warn("Memory Debug Mode",
+		zap.String("matched consume mem", memory.FormatBytes(getRowsMemUse(matched)-memSizeMatched)),
+		zap.String("matchedPtrs consume mem", memory.FormatBytes(getRowPtrsMemUse(matchedPtrs)-memSizeMatchedPtrs)),
+		zap.String("get consume mem", memory.FormatBytes(mem)))
 	return matched, matchedPtrs, err
 }
 
@@ -400,10 +408,12 @@ func (ht *concurrentMapHashTable) Put(hashKey uint64, rowPtr chunk.RowPtr) {
 // Get gets the values of the "key" and appends them to "values".
 func (ht *concurrentMapHashTable) Get(hashKey uint64) (rowPtrs []chunk.RowPtr) {
 	entryAddr, _ := ht.hashMap.Get(hashKey)
+	memSize := cap(rowPtrs) * 8
 	for entryAddr != nil {
 		rowPtrs = append(rowPtrs, entryAddr.ptr)
 		entryAddr = entryAddr.next
 	}
+	ht.memDelta = int64(cap(rowPtrs)*8 - memSize)
 	return
 }
 
