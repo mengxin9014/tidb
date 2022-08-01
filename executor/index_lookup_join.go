@@ -318,9 +318,9 @@ func (e *IndexLookUpJoin) getFinishedTask(ctx context.Context) (*lookUpJoinTask,
 	}
 
 	// The previous task has been processed, so release the occupied memory
-	if task != nil {
-		task.memTracker.Detach()
-	}
+	//if task != nil {
+	//	task.memTracker.Detach()
+	//}
 	select {
 	case task = <-e.resultCh:
 	case <-ctx.Done():
@@ -514,9 +514,9 @@ func (iw *innerWorker) handleTask(ctx context.Context, task *lookUpJoinTask) err
 			atomic.AddInt64(&iw.stats.totalTime, int64(time.Since(start)))
 		}()
 	}
-	defer func() {
-		iw.memTracker.Consume(-iw.memTracker.BytesConsumed())
-	}()
+	//defer func() {
+	//	iw.memTracker.Consume(-iw.memTracker.BytesConsumed())
+	//}()
 	lookUpContents, err := iw.constructLookupContent(task)
 	if err != nil {
 		return err
