@@ -112,11 +112,21 @@ func (c *hashRowContainer) ShallowCopy() *hashRowContainer {
 	return &newHRC
 }
 
+func getRowsMemUse(rows []chunk.Row) int64 {
+	return int64(len(rows) * (8 + 4))
+}
+
+func getRowPtrsMemUse(rowPtrs []chunk.RowPtr) int64 {
+	return int64(len(rowPtrs) * (4 + 4))
+}
+
 // GetMatchedRowsAndPtrs get matched rows and Ptrs from probeRow. It can be called
 // in multiple goroutines while each goroutine should keep its own
 // h and buf.
 func (c *hashRowContainer) GetMatchedRowsAndPtrs(probeKey uint64, probeRow chunk.Row, hCtx *hashContext, matched []chunk.Row, matchedPtrs []chunk.RowPtr) ([]chunk.Row, []chunk.RowPtr, error) {
 	var err error
+	memSizeMatched := getRowsMemUse(matched)
+	memSizeMatchedPtrs := getRowPtrsMemUse(matchedPtrs)
 	innerPtrs := c.hashTable.Get(probeKey)
 	if len(innerPtrs) == 0 {
 		return nil, nil, err
@@ -141,6 +151,8 @@ func (c *hashRowContainer) GetMatchedRowsAndPtrs(probeKey uint64, probeRow chunk
 		matched = append(matched, matchedRow)
 		matchedPtrs = append(matchedPtrs, ptr)
 	}
+	c.memTracker.Consume(getRowsMemUse(matched) - memSizeMatched)
+	c.memTracker.Consume(getRowPtrsMemUse(matchedPtrs) - memSizeMatchedPtrs)
 	return matched, matchedPtrs, err
 }
 
