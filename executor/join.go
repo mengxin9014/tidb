@@ -479,8 +479,8 @@ func (e *HashJoinExec) runJoinWorker(workerID uint, probeKeyColIdx []int) {
 			break
 		}
 		start := time.Now()
-		e.rowContainerForProbe[workerID].GetMemTracker().AttachTo(e.memTracker)
-		e.rowContainerForProbe[workerID].GetMemTracker().SetLabel(memory.LabelForProbeSideResult)
+		//e.rowContainerForProbe[workerID].GetMemTracker().AttachTo(e.memTracker)
+		//e.rowContainerForProbe[workerID].GetMemTracker().SetLabel(memory.LabelForProbeSideResult)
 		if e.useOuterToBuild {
 			ok, joinResult = e.join2ChunkForOuterHashJoin(workerID, probeSideResult, hCtx, e.rowContainerForProbe[workerID], joinResult)
 		} else {

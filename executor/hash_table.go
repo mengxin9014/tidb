@@ -130,8 +130,6 @@ func (c *hashRowContainer) GetMatchedRowsAndPtrs(probeKey uint64, probeRow chunk
 	memSizeMatched := getRowsMemUse(matched)
 	memSizeMatchedPtrs := getRowPtrsMemUse(matchedPtrs)
 	innerPtrs := c.hashTable.Get(probeKey)
-	mem := c.hashTable.GetAndCleanMemoryDelta()
-	c.memTracker.Consume(mem)
 	if len(innerPtrs) == 0 {
 		return nil, nil, err
 	}
@@ -159,8 +157,7 @@ func (c *hashRowContainer) GetMatchedRowsAndPtrs(probeKey uint64, probeRow chunk
 	c.memTracker.Consume(getRowPtrsMemUse(matchedPtrs) - memSizeMatchedPtrs)
 	logutil.BgLogger().Warn("Memory Debug Mode",
 		zap.String("matched consume mem", memory.FormatBytes(getRowsMemUse(matched)-memSizeMatched)),
-		zap.String("matchedPtrs consume mem", memory.FormatBytes(getRowPtrsMemUse(matchedPtrs)-memSizeMatchedPtrs)),
-		zap.String("get consume mem", memory.FormatBytes(mem)))
+		zap.String("matchedPtrs consume mem", memory.FormatBytes(getRowPtrsMemUse(matchedPtrs)-memSizeMatchedPtrs)))
 	return matched, matchedPtrs, err
 }
 
