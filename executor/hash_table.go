@@ -16,8 +16,6 @@ package executor
 
 import (
 	"fmt"
-	"github.com/pingcap/tidb/util/logutil"
-	"go.uber.org/zap"
 	"hash"
 	"hash/fnv"
 	"sync/atomic"
@@ -115,11 +113,11 @@ func (c *hashRowContainer) ShallowCopy() *hashRowContainer {
 }
 
 func getRowsMemUse(rows []chunk.Row) int64 {
-	return int64(cap(rows) * (8 + 4))
+	return int64(cap(rows) * int(unsafe.Sizeof(chunk.Row{})))
 }
 
 func getRowPtrsMemUse(rowPtrs []chunk.RowPtr) int64 {
-	return int64(cap(rowPtrs) * (4 + 4))
+	return int64(cap(rowPtrs) * int(unsafe.Sizeof(chunk.RowPtr{})))
 }
 
 // GetMatchedRowsAndPtrs get matched rows and Ptrs from probeRow. It can be called
@@ -155,9 +153,9 @@ func (c *hashRowContainer) GetMatchedRowsAndPtrs(probeKey uint64, probeRow chunk
 	}
 	c.memTracker.Consume(getRowsMemUse(matched) - memSizeMatched)
 	c.memTracker.Consume(getRowPtrsMemUse(matchedPtrs) - memSizeMatchedPtrs)
-	logutil.BgLogger().Warn("Memory Debug Mode",
-		zap.String("matched consume mem", memory.FormatBytes(getRowsMemUse(matched)-memSizeMatched)),
-		zap.String("matchedPtrs consume mem", memory.FormatBytes(getRowPtrsMemUse(matchedPtrs)-memSizeMatchedPtrs)))
+	//logutil.BgLogger().Warn("Memory Debug Mode",
+	//	zap.String("matched consume mem", memory.FormatBytes(getRowsMemUse(matched)-memSizeMatched)),
+	//	zap.String("matchedPtrs consume mem", memory.FormatBytes(getRowPtrsMemUse(matchedPtrs)-memSizeMatchedPtrs)))
 	return matched, matchedPtrs, err
 }
 
