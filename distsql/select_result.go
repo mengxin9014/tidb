@@ -335,6 +335,7 @@ func (r *selectResult) readFromChunk(ctx context.Context, chk *chunk.Chunk) erro
 		// If the next chunk size is greater than required rows * 0.8, reuse the memory of the next chunk and return
 		// immediately. Otherwise, splice the data to one chunk and wait the next chunk.
 		//if r.respChunkDecoder.RemainedRows() > int(float64(chk.RequiredRows())*0.8) {
+		r.memTracker.Consume(chk.MemoryUsage() - r.respChunkDecoder.GetChk().MemoryUsage())
 		if chk.NumRows() > 0 {
 			return nil
 		}
