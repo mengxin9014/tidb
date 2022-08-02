@@ -346,6 +346,7 @@ func (r *selectResult) readFromChunk(ctx context.Context, chk *chunk.Chunk) erro
 		if r.respChunkDecoder.IsFinished() {
 			r.respChkIdx++
 		}
+		break
 	}
 	return nil
 }
