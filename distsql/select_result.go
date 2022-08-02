@@ -343,10 +343,10 @@ func (r *selectResult) readFromChunk(ctx context.Context, chk *chunk.Chunk) erro
 			return nil
 		}
 		//r.respChunkDecoder.Decode(chk)
-		if r.respChunkDecoder.IsFinished() {
-			r.respChkIdx++
-		}
-		break
+		//if r.respChunkDecoder.IsFinished() {
+		//	r.respChkIdx++
+		//}
+		return nil
 	}
 	return nil
 }
