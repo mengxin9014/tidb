@@ -717,13 +717,9 @@ const (
 	// When set to (0, 1], Selectivity() will use the value of this variable as the default selectivity of those
 	// functions instead of the selectionFactor (0.8).
 	TiDBDefaultStrMatchSelectivity = "tidb_default_string_match_selectivity"
-)
-
 	// TiDBMemoryDebugMode is used to set tidb memory debug mode.
 	TiDBMemoryDebugMode = "tidb_memory_debug_mode"
-	)
-
-// TiDB vars that have only global scope
+)
 
 const (
 	// TiDBGCEnable turns garbage collection on or OFF
