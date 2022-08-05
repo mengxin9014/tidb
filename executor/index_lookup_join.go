@@ -483,6 +483,7 @@ func (iw *innerWorker) run(ctx context.Context, wg *sync.WaitGroup) {
 			task.doneCh <- err
 		}
 		wg.Done()
+		//iw.memTracker.Detach()
 	}()
 
 	for ok := true; ok; {
@@ -514,9 +515,9 @@ func (iw *innerWorker) handleTask(ctx context.Context, task *lookUpJoinTask) err
 			atomic.AddInt64(&iw.stats.totalTime, int64(time.Since(start)))
 		}()
 	}
-	defer func() {
-		iw.memTracker.Consume(-iw.memTracker.BytesConsumed())
-	}()
+	//defer func() {
+	//	iw.memTracker.Consume(-iw.memTracker.BytesConsumed())
+	//}()
 	lookUpContents, err := iw.constructLookupContent(task)
 	if err != nil {
 		return err
