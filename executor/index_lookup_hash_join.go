@@ -456,7 +456,6 @@ func (e *IndexNestedLoopHashJoin) newInnerWorker(taskCh chan *indexHashJoinTask,
 
 func (iw *indexHashJoinInnerWorker) run(ctx context.Context, cancelFunc context.CancelFunc) {
 	defer trace.StartRegion(ctx, "IndexHashJoinInnerWorker").End()
-	defer iw.memTracker.Detach()
 	var task *indexHashJoinTask
 	joinResult, ok := iw.getNewJoinResult(ctx)
 	if !ok {
