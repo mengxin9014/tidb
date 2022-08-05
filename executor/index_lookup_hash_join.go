@@ -604,7 +604,7 @@ func (iw *indexHashJoinInnerWorker) handleHashJoinInnerWorkerPanic(resultCh chan
 
 func (iw *indexHashJoinInnerWorker) handleTask(ctx context.Context, task *indexHashJoinTask, joinResult *indexHashJoinResult, h hash.Hash64, resultCh chan *indexHashJoinResult) (err error) {
 	defer func() {
-		//iw.memTracker.Consume(-iw.memTracker.BytesConsumed())
+		iw.memTracker.Consume(-iw.memTracker.BytesConsumed())
 		if task.keepOuterOrder {
 			if err != nil {
 				joinResult.err = err
