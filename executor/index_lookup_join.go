@@ -410,7 +410,7 @@ func (ow *outerWorker) buildTask(ctx context.Context) (*lookUpJoinTask, error) {
 		outerResult: newList(ow.executor),
 		lookupMap:   mvmap.NewMVMap(),
 	}
-	task.memTracker = memory.NewTracker(memory.LabelForIndexJoinTask, -1)
+	task.memTracker = memory.NewTracker(-1, -1)
 	task.outerResult.GetMemTracker().AttachTo(task.memTracker)
 	task.memTracker.AttachTo(ow.parentMemTracker)
 
