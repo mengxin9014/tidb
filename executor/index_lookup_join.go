@@ -318,9 +318,9 @@ func (e *IndexLookUpJoin) getFinishedTask(ctx context.Context) (*lookUpJoinTask,
 	}
 
 	// The previous task has been processed, so release the occupied memory
-	if task != nil {
-		task.memTracker.Detach()
-	}
+	//if task != nil {
+	//	task.memTracker.Detach()
+	//}
 	select {
 	case task = <-e.resultCh:
 	case <-ctx.Done():

@@ -1165,6 +1165,9 @@ type SessionVars struct {
 	// MaxAllowedPacket indicates the maximum size of a packet for the MySQL protocol.
 	MaxAllowedPacket uint64
 
+	// MemoryDebugMode indicated the memory debug mode.
+	MemoryDebugMode int64
+
 	// TiFlash related optimization, only for MPP.
 	TiFlashFineGrainedShuffleStreamCount int64
 	TiFlashFineGrainedShuffleBatchSize   uint64

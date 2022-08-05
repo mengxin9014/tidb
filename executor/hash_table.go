@@ -112,19 +112,21 @@ func (c *hashRowContainer) ShallowCopy() *hashRowContainer {
 	return &newHRC
 }
 
-// GetMatchedRows get matched rows from probeRow. It can be called
-// in multiple goroutines while each goroutine should keep its own
-// h and buf.
-func (c *hashRowContainer) GetMatchedRows(probeKey uint64, probeRow chunk.Row, hCtx *hashContext, matched []chunk.Row) ([]chunk.Row, error) {
-	matchedRows, _, err := c.GetMatchedRowsAndPtrs(probeKey, probeRow, hCtx, matched, nil, false)
-	return matchedRows, err
+func getRowsMemUse(rows []chunk.Row) int64 {
+	return int64(cap(rows) * int(unsafe.Sizeof(chunk.Row{})))
+}
+
+func getRowPtrsMemUse(rowPtrs []chunk.RowPtr) int64 {
+	return int64(cap(rowPtrs) * int(unsafe.Sizeof(chunk.RowPtr{})))
 }
 
 // GetMatchedRowsAndPtrs get matched rows and Ptrs from probeRow. It can be called
 // in multiple goroutines while each goroutine should keep its own
 // h and buf.
-func (c *hashRowContainer) GetMatchedRowsAndPtrs(probeKey uint64, probeRow chunk.Row, hCtx *hashContext, matched []chunk.Row, matchedPtrs []chunk.RowPtr, needPtr bool) ([]chunk.Row, []chunk.RowPtr, error) {
+func (c *hashRowContainer) GetMatchedRowsAndPtrs(probeKey uint64, probeRow chunk.Row, hCtx *hashContext, matched []chunk.Row, matchedPtrs []chunk.RowPtr) ([]chunk.Row, []chunk.RowPtr, error) {
 	var err error
+	memSizeMatched := getRowsMemUse(matched)
+	memSizeMatchedPtrs := getRowPtrsMemUse(matchedPtrs)
 	innerPtrs := c.hashTable.Get(probeKey)
 	if len(innerPtrs) == 0 {
 		return nil, nil, err
@@ -147,10 +149,13 @@ func (c *hashRowContainer) GetMatchedRowsAndPtrs(probeKey uint64, probeRow chunk
 			continue
 		}
 		matched = append(matched, matchedRow)
-		if needPtr {
-			matchedPtrs = append(matchedPtrs, ptr)
-		}
+		matchedPtrs = append(matchedPtrs, ptr)
 	}
+	c.memTracker.Consume(getRowsMemUse(matched) - memSizeMatched)
+	c.memTracker.Consume(getRowPtrsMemUse(matchedPtrs) - memSizeMatchedPtrs)
+	//logutil.BgLogger().Warn("Memory Debug Mode",
+	//	zap.String("matched consume mem", memory.FormatBytes(getRowsMemUse(matched)-memSizeMatched)),
+	//	zap.String("matchedPtrs consume mem", memory.FormatBytes(getRowPtrsMemUse(matchedPtrs)-memSizeMatchedPtrs)))
 	return matched, matchedPtrs, err
 }
 
@@ -268,7 +273,8 @@ type entryStore struct {
 
 func newEntryStore() *entryStore {
 	es := new(entryStore)
-	es.slices = [][]entry{make([]entry, initialEntrySliceLen)}
+	es.slices = make([][]entry, 0, 1024)
+	es.slices = append(es.slices, make([]entry, initialEntrySliceLen))
 	es.cursor = 0
 	return es
 }
@@ -397,10 +403,12 @@ func (ht *concurrentMapHashTable) Put(hashKey uint64, rowPtr chunk.RowPtr) {
 // Get gets the values of the "key" and appends them to "values".
 func (ht *concurrentMapHashTable) Get(hashKey uint64) (rowPtrs []chunk.RowPtr) {
 	entryAddr, _ := ht.hashMap.Get(hashKey)
+	memSize := cap(rowPtrs) * 8
 	for entryAddr != nil {
 		rowPtrs = append(rowPtrs, entryAddr.ptr)
 		entryAddr = entryAddr.next
 	}
+	ht.memDelta = int64(cap(rowPtrs)*8 - memSize)
 	return
 }
 

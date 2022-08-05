@@ -1727,6 +1727,10 @@ var defaultSysVars = []*SysVar{
 		s.MaxPagingSize = tidbOptPositiveInt32(val, DefMaxPagingSize)
 		return nil
 	}},
+	{Scope: ScopeSession, Name: TiDBMemoryDebugMode, Value: strconv.Itoa(0), Type: TypeInt, MinValue: 0, MaxValue: 2, SetSession: func(s *SessionVars, val string) error {
+		s.MemoryDebugMode = TidbOptInt64(val, 0)
+		return nil
+	}},
 	{Scope: ScopeSession, Name: TiDBMemoryDebugModeMinHeapInUse, Value: strconv.Itoa(0), Type: TypeInt, MinValue: math.MinInt64, MaxValue: math.MaxInt64, SetSession: func(s *SessionVars, val string) error {
 		s.MemoryDebugModeMinHeapInUse = TidbOptInt64(val, 0)
 		return nil

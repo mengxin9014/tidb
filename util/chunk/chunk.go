@@ -65,6 +65,7 @@ func NewChunkWithCapacity(fields []*types.FieldType, capacity int) *Chunk {
 //  cap: the limit for the max number of rows.
 //  maxChunkSize: the max limit for the number of rows.
 func New(fields []*types.FieldType, capacity, maxChunkSize int) *Chunk {
+
 	chk := &Chunk{
 		columns:  make([]*Column, 0, len(fields)),
 		capacity: mathutil.Min(capacity, maxChunkSize),
@@ -148,9 +149,10 @@ func (c *Chunk) MemoryUsage() (sum int64) {
 		return 0
 	}
 	for _, col := range c.columns {
-		curColMemUsage := int64(unsafe.Sizeof(*col)) + int64(cap(col.nullBitmap)) + int64(cap(col.offsets)*8) + int64(cap(col.data)) + int64(cap(col.elemBuf))
+		curColMemUsage := int64(8) + int64(unsafe.Sizeof(*col)) + int64(cap(col.nullBitmap)) + int64(cap(col.offsets)*8) + int64(cap(col.data)) + int64(cap(col.elemBuf))
 		sum += curColMemUsage
 	}
+	sum += int64(unsafe.Sizeof(*c)) + int64(8) + int64(cap(c.sel)*8)
 	return
 }
 

@@ -267,6 +267,14 @@ func (e *HashJoinExec) wait4BuildSide() (emptyBuild bool, err error) {
 	return false, nil
 }
 
+func (e *HashJoinExec) fetchBuildSideRows52(ctx context.Context, chkCh chan<- *chunk.Chunk, doneCh <-chan struct{}) {
+	e.fetchBuildSideRows(ctx, chkCh, doneCh)
+}
+
+func (e *HashJoinExec) fetchBuildSideRows87(ctx context.Context, chkCh chan<- *chunk.Chunk, doneCh <-chan struct{}) {
+	e.fetchBuildSideRows(ctx, chkCh, doneCh)
+}
+
 // fetchBuildSideRows fetches all rows from build side executor, and append them
 // to e.buildSideResult.
 func (e *HashJoinExec) fetchBuildSideRows(ctx context.Context, chkCh chan<- *chunk.Chunk, doneCh <-chan struct{}) {
@@ -471,6 +479,8 @@ func (e *HashJoinExec) runJoinWorker(workerID uint, probeKeyColIdx []int) {
 			break
 		}
 		start := time.Now()
+		//e.rowContainerForProbe[workerID].GetMemTracker().AttachTo(e.memTracker)
+		//e.rowContainerForProbe[workerID].GetMemTracker().SetLabel(memory.LabelForProbeSideResult)
 		if e.useOuterToBuild {
 			ok, joinResult = e.join2ChunkForOuterHashJoin(workerID, probeSideResult, hCtx, e.rowContainerForProbe[workerID], joinResult)
 		} else {
@@ -699,7 +709,14 @@ func (e *HashJoinExec) Next(ctx context.Context, req *chunk.Chunk) (err error) {
 		}
 		go util.WithRecovery(func() {
 			defer trace.StartRegion(ctx, "HashJoinHashTableBuilder").End()
-			e.fetchAndBuildHashTable(ctx)
+			if e.memTracker.Label() == 52 {
+				e.fetchAndBuildHashTable52(ctx)
+			} else if e.memTracker.Label() == 87 {
+				e.fetchAndBuildHashTable87(ctx)
+			} else {
+				e.fetchAndBuildHashTable(ctx)
+			}
+
 		}, e.handleFetchAndBuildHashTablePanic)
 		e.fetchAndProbeHashTable(ctx)
 		e.prepared = true
@@ -729,6 +746,14 @@ func (e *HashJoinExec) handleFetchAndBuildHashTablePanic(r interface{}) {
 	close(e.buildFinished)
 }
 
+func (e *HashJoinExec) fetchAndBuildHashTable87(ctx context.Context) {
+	e.fetchAndBuildHashTable(ctx)
+}
+
+func (e *HashJoinExec) fetchAndBuildHashTable52(ctx context.Context) {
+	e.fetchAndBuildHashTable(ctx)
+}
+
 func (e *HashJoinExec) fetchAndBuildHashTable(ctx context.Context) {
 	if e.stats != nil {
 		start := time.Now()
@@ -743,7 +768,13 @@ func (e *HashJoinExec) fetchAndBuildHashTable(ctx context.Context) {
 	go util.WithRecovery(
 		func() {
 			defer trace.StartRegion(ctx, "HashJoinBuildSideFetcher").End()
-			e.fetchBuildSideRows(ctx, buildSideResultCh, doneCh)
+			if e.memTracker.Label() == 52 {
+				e.fetchBuildSideRows52(ctx, buildSideResultCh, doneCh)
+			} else if e.memTracker.Label() == 87 {
+				e.fetchBuildSideRows87(ctx, buildSideResultCh, doneCh)
+			} else {
+				e.fetchBuildSideRows(ctx, buildSideResultCh, doneCh)
+			}
 		},
 		func(r interface{}) {
 			if r != nil {

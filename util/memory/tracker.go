@@ -505,6 +505,32 @@ func (t *Tracker) SearchTrackerConsumedMoreThanNBytes(limit int64) (res []*Track
 	return
 }
 
+func (t *Tracker) CountAllChildrenMemUse() map[string]int64 {
+	tMap := make(map[string]int64, 1024)
+	countChildMem(t, "", tMap)
+	return tMap
+}
+
+func countChildMem(t *Tracker, familyTree string, tMap map[string]int64) {
+	familyTree += strconv.Itoa(t.Label()) + "->"
+	if _, ok := tMap[familyTree]; !ok {
+		tMap[familyTree] = t.BytesConsumed()
+	} else {
+		tMap[familyTree] += t.BytesConsumed()
+	}
+	if len(t.mu.children) == 0 {
+		return
+	}
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	for _, sli := range t.mu.children {
+		for _, tracker := range sli {
+			countChildMem(tracker, familyTree, tMap)
+		}
+	}
+	return
+}
+
 // String returns the string representation of this Tracker tree.
 func (t *Tracker) String() string {
 	buffer := bytes.NewBufferString("\n")
