@@ -456,6 +456,7 @@ func (e *IndexNestedLoopHashJoin) newInnerWorker(taskCh chan *indexHashJoinTask,
 
 func (iw *indexHashJoinInnerWorker) run(ctx context.Context, cancelFunc context.CancelFunc) {
 	defer trace.StartRegion(ctx, "IndexHashJoinInnerWorker").End()
+	defer iw.memTracker.Detach()
 	var task *indexHashJoinTask
 	joinResult, ok := iw.getNewJoinResult(ctx)
 	if !ok {
@@ -465,9 +466,9 @@ func (iw *indexHashJoinInnerWorker) run(ctx context.Context, cancelFunc context.
 	h, resultCh := fnv.New64(), iw.resultCh
 	for {
 		// The previous task has been processed, so release the occupied memory
-		if task != nil {
-			task.memTracker.Detach()
-		}
+		//if task != nil {
+		//	task.memTracker.Detach()
+		//}
 		select {
 		case <-ctx.Done():
 			return
@@ -604,7 +605,7 @@ func (iw *indexHashJoinInnerWorker) handleHashJoinInnerWorkerPanic(resultCh chan
 
 func (iw *indexHashJoinInnerWorker) handleTask(ctx context.Context, task *indexHashJoinTask, joinResult *indexHashJoinResult, h hash.Hash64, resultCh chan *indexHashJoinResult) (err error) {
 	defer func() {
-		iw.memTracker.Consume(-iw.memTracker.BytesConsumed())
+		//iw.memTracker.Consume(-iw.memTracker.BytesConsumed())
 		if task.keepOuterOrder {
 			if err != nil {
 				joinResult.err = err
