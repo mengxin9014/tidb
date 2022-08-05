@@ -250,10 +250,6 @@ type Decoder struct {
 	remainedRows int
 }
 
-func (c *Decoder) GetChk() *Chunk {
-	return c.intermChk
-}
-
 // NewDecoder creates a new Decoder object for decode a Chunk.
 func NewDecoder(chk *Chunk, colTypes []*types.FieldType) *Decoder {
 	return &Decoder{intermChk: chk, codec: NewCodec(colTypes), remainedRows: 0}

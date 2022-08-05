@@ -332,21 +332,22 @@ func (r *selectResult) readFromChunk(ctx context.Context, chk *chunk.Chunk) erro
 		if r.respChunkDecoder.IsFinished() {
 			r.respChunkDecoder.Reset(r.selectResp.Chunks[r.respChkIdx].RowsData)
 		}
-		// If the next chunk size is greater than required rows * 0.8, reuse the memory of the next chunk and return
-		// immediately. Otherwise, splice the data to one chunk and wait the next chunk.
-		//if r.respChunkDecoder.RemainedRows() > int(float64(chk.RequiredRows())*0.8) {
-		//r.memTracker.Consume(12)
-		if chk.NumRows() > 0 {
+		//If the next chunk size is greater than required rows * 0.8, reuse the memory of the next chunk and return
+		//immediately. Otherwise, splice the data to one chunk and wait the next chunk.
+
+		if r.ctx.GetSessionVars().TiFlashMaxThreads == 2 {
+			if chk.NumRows() > 0 {
+				return nil
+			}
+			r.respChunkDecoder.ReuseIntermChk(chk)
+			r.respChkIdx++
 			return nil
 		}
-		r.respChunkDecoder.ReuseIntermChk(chk)
-		r.respChkIdx++
-		return nil
-		//}
-		//r.respChunkDecoder.Decode(chk)
-		//if r.respChunkDecoder.IsFinished() {
-		//	r.respChkIdx++
-		//}
+
+		r.respChunkDecoder.Decode(chk)
+		if r.respChunkDecoder.IsFinished() {
+			r.respChkIdx++
+		}
 	}
 	return nil
 }
