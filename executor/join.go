@@ -732,6 +732,8 @@ func (e *HashJoinExec) Next(ctx context.Context, req *chunk.Chunk) (err error) {
 		logutil.BgLogger().Warn("Memory Debug Mode",
 			zap.String("111", "111"))
 		err := e.rowContainer.Close()
+		e.buildSideRows = nil
+		e.buildSideRowPtrs = nil
 		if err != nil {
 			return err
 		}
