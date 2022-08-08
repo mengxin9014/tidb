@@ -90,7 +90,6 @@ type IndexLookUpJoin struct {
 
 func (e *IndexLookUpJoin) Clear() {
 	e.task = nil
-	e.joinResult = nil
 	e.innerIter = nil
 	e.indexRanges = nil
 	e.keyOff2IdxOff = nil
