@@ -88,6 +88,17 @@ type IndexLookUpJoin struct {
 	prepared bool
 }
 
+func (e *IndexLookUpJoin) Clear() {
+	e.task = nil
+	e.joinResult = nil
+	e.innerIter = nil
+	e.indexRanges = nil
+	e.keyOff2IdxOff = nil
+	e.innerPtrBytes = nil
+	e.lastColHelper = nil
+	e.stats = nil
+}
+
 type outerCtx struct {
 	rowTypes  []*types.FieldType
 	keyCols   []int
@@ -273,6 +284,9 @@ func (e *IndexLookUpJoin) Next(ctx context.Context, req *chunk.Chunk) error {
 			return err
 		}
 		if task == nil {
+			logutil.BgLogger().Warn("Memory Debug Mode",
+				zap.String("111111", "111111"))
+			e.Clear()
 			return nil
 		}
 		startTime := time.Now()
