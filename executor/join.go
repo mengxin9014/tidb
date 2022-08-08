@@ -18,6 +18,8 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"github.com/pingcap/tidb/util/logutil"
+	"go.uber.org/zap"
 	"runtime/trace"
 	"strconv"
 	"sync"
@@ -727,6 +729,8 @@ func (e *HashJoinExec) Next(ctx context.Context, req *chunk.Chunk) (err error) {
 
 	result, ok := <-e.joinResultCh
 	if !ok {
+		logutil.BgLogger().Warn("Memory Debug Mode",
+			zap.String("111", "111"))
 		err := e.rowContainer.Close()
 		if err != nil {
 			return err
@@ -734,6 +738,8 @@ func (e *HashJoinExec) Next(ctx context.Context, req *chunk.Chunk) (err error) {
 		return nil
 	}
 	if result.err != nil {
+		logutil.BgLogger().Warn("Memory Debug Mode",
+			zap.String("222", "222"))
 		e.finished.Store(true)
 		return result.err
 	}
