@@ -727,6 +727,7 @@ func (e *HashJoinExec) Next(ctx context.Context, req *chunk.Chunk) (err error) {
 
 	result, ok := <-e.joinResultCh
 	if !ok {
+		e.rowContainer.hashTable.Clear()
 		return nil
 	}
 	if result.err != nil {

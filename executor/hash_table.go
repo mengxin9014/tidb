@@ -301,6 +301,7 @@ type baseHashTable interface {
 	Put(hashKey uint64, rowPtr chunk.RowPtr)
 	Get(hashKey uint64) (rowPtrs []chunk.RowPtr)
 	Len() uint64
+	Clear()
 	// GetAndCleanMemoryDelta gets and cleans the memDelta of the baseHashTable. Memory delta will be cleared after each fetch.
 	// It indicates the memory delta of the baseHashTable since the last calling GetAndCleanMemoryDelta().
 	GetAndCleanMemoryDelta() int64
@@ -364,6 +365,11 @@ func (ht *unsafeHashTable) GetAndCleanMemoryDelta() int64 {
 	return memDelta
 }
 
+func (ht *unsafeHashTable) Clear() {
+	ht.hashMap = nil
+	ht.entryStore = nil
+}
+
 // concurrentMapHashTable is a concurrent hash table built on concurrentMap
 type concurrentMapHashTable struct {
 	hashMap    concurrentMap
@@ -421,4 +427,9 @@ func (ht *concurrentMapHashTable) GetAndCleanMemoryDelta() int64 {
 		}
 	}
 	return memDelta
+}
+
+func (ht *concurrentMapHashTable) Clear() {
+	ht.hashMap = nil
+	ht.entryStore = nil
 }
