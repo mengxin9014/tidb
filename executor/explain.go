@@ -20,6 +20,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"runtime/debug"
 	rpprof "runtime/pprof"
 	"sort"
 	"time"
@@ -153,7 +154,8 @@ func (e *ExplainExec) runMemoryDebugGoroutine(exit chan bool) {
 	const GB = 1024 * 1024 * 1024
 	go func() {
 		defer func() {
-			runtime.GC()
+			//runtime.GC()
+			debug.FreeOSMemory()
 			runtime.StopTheWorld("readMem")
 			runtime.ReadMemStatWithoutSTW(instanceStats)
 			heapInUse = instanceStats.HeapInuse
