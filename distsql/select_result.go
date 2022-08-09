@@ -341,6 +341,7 @@ func (r *selectResult) readFromChunk(ctx context.Context, chk *chunk.Chunk) erro
 			}
 			r.respChunkDecoder.ReuseIntermChk(chk)
 			r.respChkIdx++
+			r.respChunkDecoder = nil
 			return nil
 		}
 
