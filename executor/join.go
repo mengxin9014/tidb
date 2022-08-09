@@ -293,7 +293,8 @@ func (e *HashJoinExec) fetchBuildSideRows(ctx context.Context, chkCh chan<- *chu
 		if e.finished.Load().(bool) {
 			return
 		}
-		chk := chunk.NewChunkWithCapacity(e.buildSideExec.base().retFieldTypes, e.ctx.GetSessionVars().MaxChunkSize)
+		chk := chunk.NewChunkWithCapacity(e.buildSideExec.base().retFieldTypes, 0)
+		//chk := chunk.NewChunkWithCapacity(e.buildSideExec.base().retFieldTypes, e.ctx.GetSessionVars().MaxChunkSize)
 		err = Next(ctx, e.buildSideExec, chk)
 		if err != nil {
 			e.buildFinished <- errors.Trace(err)
