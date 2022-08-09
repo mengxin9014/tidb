@@ -153,10 +153,10 @@ func (e *ExplainExec) runMemoryDebugGoroutine(exit chan bool) {
 	const GB = 1024 * 1024 * 1024
 	go func() {
 		defer func() {
-
+			runtime.GC()
 			//debug.FreeOSMemory()
 			runtime.StopTheWorld("readMem")
-			runtime.GC()
+
 			runtime.ReadMemStatWithoutSTW(instanceStats)
 			heapInUse = instanceStats.HeapInuse
 			tChildrenMap := tracker.CountAllChildrenMemUse()

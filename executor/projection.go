@@ -18,6 +18,7 @@ import (
 	"context"
 	"fmt"
 	"runtime/trace"
+	"strconv"
 	"sync"
 	"sync/atomic"
 
@@ -205,12 +206,16 @@ func (e *ProjectionExec) unParallelExecute(ctx context.Context, chk *chunk.Chunk
 func (e *ProjectionExec) parallelExecute(ctx context.Context, chk *chunk.Chunk) error {
 	atomic.StoreInt64(&e.parentReqRows, int64(chk.RequiredRows()))
 	if !e.prepared {
+		logutil.BgLogger().Warn("Memory Debug Mode",
+			zap.String("Projection start", strconv.Itoa(e.memTracker.Label())))
 		e.prepare(ctx)
 		e.prepared = true
 	}
 
 	output, ok := <-e.outputCh
 	if !ok {
+		logutil.BgLogger().Warn("Memory Debug Mode",
+			zap.String("Projection end", strconv.Itoa(e.memTracker.Label())))
 		return nil
 	}
 
