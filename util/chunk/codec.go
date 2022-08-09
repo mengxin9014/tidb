@@ -303,7 +303,7 @@ func (c *Decoder) ReuseIntermChk(chk *Chunk) {
 			}
 		}
 	}
-	chk.SwapColumns(c.intermChk)
+	chk.SwapColumnsSetOtherNil(c.intermChk)
 	c.remainedRows = 0
 }
 
