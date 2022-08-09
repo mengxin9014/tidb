@@ -269,6 +269,8 @@ func (e *IndexLookUpJoin) newInnerWorker(taskCh chan *lookUpJoinTask) *innerWork
 func (e *IndexLookUpJoin) Next(ctx context.Context, req *chunk.Chunk) error {
 	defer e.memTracker.Detach()
 	if !e.prepared {
+		logutil.BgLogger().Warn("Memory Debug Mode",
+			zap.String("IndexLookUpJoin start", strconv.Itoa(e.memTracker.Label())))
 		e.startWorkers(ctx)
 		e.prepared = true
 	}
@@ -284,7 +286,7 @@ func (e *IndexLookUpJoin) Next(ctx context.Context, req *chunk.Chunk) error {
 		}
 		if task == nil {
 			logutil.BgLogger().Warn("Memory Debug Mode",
-				zap.String("111111", "111111"))
+				zap.String("IndexLookUpJoin end", strconv.Itoa(e.memTracker.Label())))
 			e.Clear()
 			return nil
 		}

@@ -689,6 +689,8 @@ func (e *HashJoinExec) join2ChunkForOuterHashJoin(workerID uint, probeSideChk *c
 // step 2. fetch data from probe child in a background goroutine and probe the hash table in multiple join workers.
 func (e *HashJoinExec) Next(ctx context.Context, req *chunk.Chunk) (err error) {
 	if !e.prepared {
+		logutil.BgLogger().Warn("Memory Debug Mode",
+			zap.String("HashJoin start", strconv.Itoa(e.memTracker.Label())))
 		e.buildFinished = make(chan error, 1)
 		buildKeyColIdx := make([]int, len(e.buildKeys))
 		for i := range e.buildKeys {
@@ -730,7 +732,7 @@ func (e *HashJoinExec) Next(ctx context.Context, req *chunk.Chunk) (err error) {
 	result, ok := <-e.joinResultCh
 	if !ok {
 		logutil.BgLogger().Warn("Memory Debug Mode",
-			zap.String("111", "111"))
+			zap.String("hashJoin end", strconv.Itoa(e.memTracker.Label())))
 		err := e.rowContainer.Close()
 		e.buildSideRows = nil
 		e.buildSideRowPtrs = nil
@@ -740,8 +742,6 @@ func (e *HashJoinExec) Next(ctx context.Context, req *chunk.Chunk) (err error) {
 		return nil
 	}
 	if result.err != nil {
-		logutil.BgLogger().Warn("Memory Debug Mode",
-			zap.String("222", "222"))
 		e.finished.Store(true)
 		return result.err
 	}
