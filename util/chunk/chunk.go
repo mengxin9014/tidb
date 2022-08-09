@@ -252,6 +252,8 @@ func (c *Chunk) SwapColumns(other *Chunk) {
 	c.sel, other.sel = other.sel, c.sel
 	c.columns, other.columns = other.columns, c.columns
 	c.numVirtualRows, other.numVirtualRows = other.numVirtualRows, c.numVirtualRows
+	other.columns = nil
+	other.sel = nil
 }
 
 // SetNumVirtualRows sets the virtual row number for a Chunk.
