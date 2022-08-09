@@ -185,7 +185,7 @@ func (e *ExplainExec) runMemoryDebugGoroutine(exit chan bool) {
 			case <-ticker.C:
 
 				times++
-				if times%6 == 0 {
+				if times%2 == 0 {
 					if debugMode == 2 {
 						runtime.GC()
 					}
