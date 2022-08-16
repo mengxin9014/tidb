@@ -154,7 +154,6 @@ func (e *ExplainExec) runMemoryDebugGoroutine(exit chan bool) {
 	go func() {
 		defer func() {
 			runtime.GC()
-			//debug.FreeOSMemory()
 			runtime.StopTheWorld("readMem")
 
 			runtime.ReadMemStatWithoutSTW(instanceStats)
