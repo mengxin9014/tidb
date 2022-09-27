@@ -623,7 +623,7 @@ func (w *baseHashAggWorker) getPartialResult(_ *stmtctx.StatementContext, groupK
 			consume2 += memDelta
 		}
 
-		allMemDelta += int64(partialResultSize * 8)
+		allMemDelta += int64(partialResultSize*8) + 16
 		consume1 += int64(partialResultSize * 8)
 		// Map will expand when count > bucketNum * loadFactor. The memory usage will double.
 		if len(mapper)+1 > (1<<w.BInMap)*hack.LoadFactorNum/hack.LoadFactorDen {
@@ -634,7 +634,6 @@ func (w *baseHashAggWorker) getPartialResult(_ *stmtctx.StatementContext, groupK
 		allMemDelta += int64(len(groupKey[i]))
 		consume3 += int64(len(groupKey[i])) + int64(16)
 	}
-	allMemDelta += int64(n * 16)
 	logutil.BgLogger().Warn("memory record: ", zap.String("c1 ", memory.BytesToString(consume1)), zap.String("c2 ", memory.BytesToString(consume2)), zap.String("c3 ", memory.BytesToString(consume3)))
 	failpoint.Inject("ConsumeRandomPanic", nil)
 	w.memTracker.Consume(allMemDelta)
