@@ -601,6 +601,10 @@ func getGroupKey(ctx sessionctx.Context, input *chunk.Chunk, groupKey [][]byte, 
 	return groupKey, nil
 }
 
+var consume1 = int64(0)
+var consume2 = int64(0)
+var consume3 = int64(0)
+
 func (w *baseHashAggWorker) getPartialResult(_ *stmtctx.StatementContext, groupKey [][]byte, mapper aggPartialResultMapper) [][]aggfuncs.PartialResult {
 	n := len(groupKey)
 	partialResults := make([][]aggfuncs.PartialResult, n)
@@ -617,7 +621,9 @@ func (w *baseHashAggWorker) getPartialResult(_ *stmtctx.StatementContext, groupK
 			partialResults[i][j] = partialResult
 			allMemDelta += memDelta // the memory usage of PartialResult
 		}
-		allMemDelta += int64(partialResultSize * 8)
+		consume2 += allMemDelta
+		allMemDelta += int64(partialResultSize*8 + 32 + 32)
+		consume1 += int64(partialResultSize*8 + 32 + 32)
 		// Map will expand when count > bucketNum * loadFactor. The memory usage will double.
 		if len(mapper)+1 > (1<<w.BInMap)*hack.LoadFactorNum/hack.LoadFactorDen {
 			w.memTracker.Consume(hack.DefBucketMemoryUsageForMapStrToSlice * (1 << w.BInMap))
@@ -625,7 +631,9 @@ func (w *baseHashAggWorker) getPartialResult(_ *stmtctx.StatementContext, groupK
 		}
 		mapper[string(groupKey[i])] = partialResults[i]
 		allMemDelta += int64(len(groupKey[i]))
+		consume3 += int64(len(groupKey[i]))
 	}
+	logutil.BgLogger().Warn("memory record: ", zap.String("c1 ", memory.BytesToString(consume1)), zap.String("c2 ", memory.BytesToString(consume2)), zap.String("c3 ", memory.BytesToString(consume3)))
 	failpoint.Inject("ConsumeRandomPanic", nil)
 	w.memTracker.Consume(allMemDelta)
 	return partialResults
