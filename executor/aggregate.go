@@ -620,8 +620,9 @@ func (w *baseHashAggWorker) getPartialResult(_ *stmtctx.StatementContext, groupK
 			partialResult, memDelta := af.AllocPartialResult()
 			partialResults[i][j] = partialResult
 			allMemDelta += memDelta // the memory usage of PartialResult
+			consume2 += memDelta
 		}
-		consume2 += allMemDelta
+
 		allMemDelta += int64(partialResultSize*8 + 32 + 32)
 		consume1 += int64(partialResultSize*8 + 32 + 32)
 		// Map will expand when count > bucketNum * loadFactor. The memory usage will double.
