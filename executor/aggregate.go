@@ -630,9 +630,10 @@ func (w *baseHashAggWorker) getPartialResult(_ *stmtctx.StatementContext, groupK
 			w.memTracker.Consume(hack.DefBucketMemoryUsageForMapStrToSlice * (1 << w.BInMap))
 			w.BInMap++
 		}
+		allMemDelta += int64(n * 16)
 		mapper[string(groupKey[i])] = partialResults[i]
 		allMemDelta += int64(len(groupKey[i]))
-		consume3 += int64(len(groupKey[i]))
+		consume3 += int64(len(groupKey[i])) + int64(n*16)
 	}
 	logutil.BgLogger().Warn("memory record: ", zap.String("c1 ", memory.BytesToString(consume1)), zap.String("c2 ", memory.BytesToString(consume2)), zap.String("c3 ", memory.BytesToString(consume3)))
 	failpoint.Inject("ConsumeRandomPanic", nil)
